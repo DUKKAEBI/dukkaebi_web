@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../api/axiosInstance";
 import * as S from "./style";
 import SearchIcon from "../../assets/image/problems/search.png";
@@ -31,6 +32,7 @@ interface Problem {
 }
 
 export default function Problems() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -41,31 +43,36 @@ export default function Problems() {
   >(null);
   const [successRateLabel, setSuccessRateLabel] = useState<string | null>(null);
   const [problems, setProblems] = useState<Problem[]>([]);
+  const [timeLabel, setTimeLabel] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const apiUrl = import.meta.env.VITE_API_URL;
+  useEffect(() => {
+    if (difficultyFilter !== null || successRateFilter || sortBy) {
+      fetchFilteredProblems();
+    }
+  }, [difficultyFilter, successRateFilter, sortBy]);
 
   const difficultyMap: Record<string, number> = {
-    gold: 1,
-    silver: 2,
-    bronze: 3,
-    iron: 4,
-    jade: 5,
+    GOLD: 1,
+    SILVER: 2,
+    COPPER: 3,
+    IRON: 4,
+    JADE: 5,
   };
 
   const difficultyReverseMap: Record<number, string> = {
-    1: "gold",
-    2: "silver",
-    3: "bronze",
-    4: "iron",
-    5: "jade",
+    1: "GOLD",
+    2: "SLIVER",
+    3: "COPPER",
+    4: "IRON",
+    5: "JADE",
   };
 
   const solvedStatusMap: Record<string, { solved: boolean; failed: boolean }> =
     {
-      solved: { solved: true, failed: false },
-      failed: { solved: false, failed: true },
-      not_solved: { solved: false, failed: false },
+      SOLVED: { solved: true, failed: false },
+      FAILED: { solved: false, failed: true },
+      NOT_SOLVED: { solved: false, failed: false },
     };
 
   useEffect(() => {
@@ -75,8 +82,8 @@ export default function Problems() {
   const fetchProblems = async () => {
     setIsLoading(true);
     try {
-      const response = await axiosInstance.get(`${apiUrl}/problems`);
-      mapProblems(response.data.problems);
+      const response = await axiosInstance.get(`/problems`);
+      mapProblems(response.data);
     } catch (error) {
       console.error("Failed to fetch problems:", error);
     } finally {
@@ -98,11 +105,8 @@ export default function Problems() {
         params.time = sortBy;
       }
 
-      const response = await axiosInstance.post(
-        `${apiUrl}/problems/filter`,
-        params
-      );
-      mapProblems(response.data.problems);
+      const response = await axiosInstance.get(`/problems/filter`, { params });
+      mapProblems(response.data);
     } catch (error) {
       console.error("Failed to fetch filtered problems:", error);
     } finally {
@@ -113,10 +117,10 @@ export default function Problems() {
   const fetchSearchProblems = async (query: string) => {
     setIsLoading(true);
     try {
-      const response = await axiosInstance.post(`${apiUrl}/problems/search`, {
-        name: query,
+      const response = await axiosInstance.get(`/problems/search`, {
+        params: { name: query },
       });
-      mapProblems(response.data.problems);
+      mapProblems(response.data);
     } catch (error) {
       console.error("Failed to search problems:", error);
     } finally {
@@ -153,9 +157,12 @@ export default function Problems() {
     setDifficultyFilter(level);
     setDifficultyLabel(label);
     setOpenDropdown(null);
-    if (level !== null || successRateFilter || sortBy) {
-      fetchFilteredProblems();
-    }
+  };
+
+  const handleTimeSelect = (time: string | null, label: string | null) => {
+    setSortBy(time);
+    setTimeLabel(label); // 추가
+    setOpenDropdown(null);
   };
 
   const handleSuccessRateSelect = (
@@ -165,9 +172,6 @@ export default function Problems() {
     setSuccessRateFilter(order);
     setSuccessRateLabel(label);
     setOpenDropdown(null);
-    if (difficultyFilter || order || sortBy) {
-      fetchFilteredProblems();
-    }
   };
 
   let filteredProblems = problems.filter((problem) =>
@@ -292,20 +296,29 @@ export default function Problems() {
                   setOpenDropdown(openDropdown === "time" ? null : "time")
                 }
               >
-                시간
+                {timeLabel || "시간"}
                 <S.ArrowIcon src={ArrowDownIcon} alt="드롭다운" />
               </S.FilterButton>
 
               {/* Dropdown Menu - Time */}
               {openDropdown === "time" && (
                 <S.DropdownMenu>
-                  <S.DropdownItem data-is-selected={false}>
+                  <S.DropdownItem
+                    data-is-selected={sortBy === null}
+                    onClick={() => handleTimeSelect(null, null)}
+                  >
                     선택 안함
                   </S.DropdownItem>
-                  <S.DropdownItem data-is-selected={false}>
+                  <S.DropdownItem
+                    data-is-selected={sortBy === "recent"}
+                    onClick={() => handleTimeSelect("recent", "최신순")}
+                  >
                     최신순
                   </S.DropdownItem>
-                  <S.DropdownItem data-is-selected={false}>
+                  <S.DropdownItem
+                    data-is-selected={sortBy === "old"}
+                    onClick={() => handleTimeSelect("old", "오래된순")}
+                  >
                     오래된순
                   </S.DropdownItem>
                 </S.DropdownMenu>
@@ -372,6 +385,7 @@ export default function Problems() {
             {filteredProblems.map((problem, index) => (
               <S.TableRow
                 key={problem.id}
+                onClick={() => navigate(`/solve/${problem.id}`)}
                 data-is-last={index === filteredProblems.length - 1}
               >
                 <S.TableCell>
@@ -384,16 +398,10 @@ export default function Problems() {
                 </S.TableCell>
                 <S.TableCell>{problem.title}</S.TableCell>
                 <S.TableCellRight>
-                  {difficultyLabel ? (
-                    <S.DifficultyBadge level={problem.difficulty}>
-                      {difficultyLabels[problem.difficulty]}
-                    </S.DifficultyBadge>
-                  ) : (
-                    <S.DifficultyImage
-                      src={difficultyImages[problem.difficulty]}
-                      alt={difficultyLabels[problem.difficulty]}
-                    />
-                  )}
+                  <S.DifficultyImage
+                    src={difficultyImages[problem.difficulty]}
+                    alt={difficultyLabels[problem.difficulty]}
+                  />
                 </S.TableCellRight>
                 <S.TableCellRight>{problem.completedCount}명</S.TableCellRight>
                 <S.TableCellRight>{problem.successRate}%</S.TableCellRight>
