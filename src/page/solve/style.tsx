@@ -92,6 +92,14 @@ export const SectionText = styled.div`
   color: #cdd1d8;
   font-size: 16px;
   line-height: 1.6;
+  white-space: pre-wrap;
+`;
+
+export const ProblemStatus = styled.div<{ $variant?: 'error' | 'info' }>`
+  color: ${({ $variant }) => ($variant === 'error' ? '#f08080' : '#7a8697')};
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 8px;
 `;
 
 export const ExampleTextarea = styled.textarea`

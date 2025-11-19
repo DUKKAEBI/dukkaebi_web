@@ -8,12 +8,22 @@ import {
 } from "react";
 import type * as monacoEditor from "monaco-editor";
 import Editor from "@monaco-editor/react";
+import { useParams } from "react-router-dom";
 import dubiAvatar from "../../assets/image/solve/Dubi.png";
 import * as Style from "./style";
 
 type SectionContent = {
   title: string;
   content: ReactNode;
+};
+
+type ProblemDetail = {
+  name: string;
+  description: string;
+  input: string;
+  output: string;
+  exampleInput: string;
+  exampleOutput: string;
 };
 
 type ChatMessage = {
@@ -55,9 +65,27 @@ const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
   },
 ];
 
+const FALLBACK_PROBLEM: ProblemDetail = {
+  name: "최댓값 구하기",
+  description: "N개의 정수가 주어졌을 때, 그 중 최댓값을 구하는 프로그램을 작성하시오.",
+  input:
+    "첫째 줄에 정수의 개수 N(1 ≤ N ≤ 100)이 주어진다.\n둘째 줄에는 N개의 정수가 공백으로 구분되어 주어진다.",
+  output: "주어진 정수 중 최댓값을 출력한다.",
+  exampleInput: "5\n1 7 3 9 2",
+  exampleOutput: "9",
+};
+
+const API_BASE_URL = (() => {
+  const raw = import.meta.env.VITE_API_URL;
+  if (!raw || typeof raw !== "string") return "";
+  return raw.trim().replace(/\/?$/, "/");
+})();
+
 export default function SolvePage() {
-  const [input] = useState("5\n1 7 3 9 2");
-  const [output, setOutput] = useState("9");
+  const { problemId } = useParams<{ problemId?: string }>();
+  const [sampleInput, setSampleInput] = useState(FALLBACK_PROBLEM.exampleInput);
+  const [sampleOutput, setSampleOutput] = useState(FALLBACK_PROBLEM.exampleOutput);
+  const [terminalOutput, setTerminalOutput] = useState("실행 결과가 이곳에 표시됩니다.");
   const [code, setCode] = useState(``);
   const [rightPanelWidth, setRightPanelWidth] = useState(65);
   const [isResizing, setIsResizing] = useState(false);
@@ -66,6 +94,11 @@ export default function SolvePage() {
   const [messages, setMessages] = useState<ChatMessage[]>(
     INITIAL_CHAT_MESSAGES
   );
+  const [problem, setProblem] = useState<ProblemDetail | null>(null);
+  const [problemStatus, setProblemStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [problemError, setProblemError] = useState("");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const messageIdRef = useRef(INITIAL_CHAT_MESSAGES.length);
   const botReplyTimeoutRef = useRef<number | null>(null);
@@ -110,21 +143,76 @@ export default function SolvePage() {
     return () => window.removeEventListener("resize", updateTerminalHeight);
   }, []);
 
+  useEffect(() => {
+    if (!problemId) {
+      setProblem(null);
+      setProblemStatus("idle");
+      setProblemError("");
+      setSampleInput(FALLBACK_PROBLEM.exampleInput);
+      setSampleOutput(FALLBACK_PROBLEM.exampleOutput);
+      return;
+    }
+
+    if (!API_BASE_URL) {
+      setProblem(null);
+      setProblemStatus("error");
+      setProblemError("서버 주소가 설정되어 있지 않습니다. .env의 VITE_API_URL 값을 확인하세요.");
+      return;
+    }
+
+    const controller = new AbortController();
+    const fetchProblem = async () => {
+      setProblemStatus("loading");
+      setProblemError("");
+      try {
+        const response = await fetch(`${API_BASE_URL}problems/${problemId}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error("문제 정보를 불러오지 못했습니다.");
+        }
+        const data: ProblemDetail = await response.json();
+        setProblem(data);
+        setProblemStatus("success");
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setProblem(null);
+        setProblemStatus("error");
+        setProblemError(
+          error instanceof Error
+            ? error.message
+            : "문제 정보를 가져오는 중 오류가 발생했습니다."
+        );
+        setSampleInput(FALLBACK_PROBLEM.exampleInput);
+        setSampleOutput(FALLBACK_PROBLEM.exampleOutput);
+      }
+    };
+
+    fetchProblem();
+    return () => controller.abort();
+  }, [problemId]);
+
+  useEffect(() => {
+    if (!problem) return;
+    setSampleInput(problem.exampleInput || FALLBACK_PROBLEM.exampleInput);
+    setSampleOutput(problem.exampleOutput || FALLBACK_PROBLEM.exampleOutput);
+  }, [problem]);
+
   const handleCalculate = () => {
-    const lines = input.trim().split("\n");
+    const lines = sampleInput.trim().split("\n");
     if (lines.length < 2) {
-      setOutput("입력 오류");
+      setTerminalOutput("입력 오류");
       return;
     }
 
     const numbers = lines[1].trim().split(/\s+/).map(Number);
     if (numbers.some(isNaN)) {
-      setOutput("입력 오류");
+      setTerminalOutput("입력 오류");
       return;
     }
 
     const max = Math.max(...numbers);
-    setOutput(max.toString());
+    setTerminalOutput(max.toString());
   };
 
   const handleEditorBeforeMount = (monaco: typeof monacoEditor) => {
@@ -200,17 +288,44 @@ export default function SolvePage() {
     }, 600);
   };
 
+  const problemSections = problem
+    ? [
+        { title: "문제 설명", content: problem.description },
+        { title: "입력", content: problem.input },
+        { title: "출력", content: problem.output },
+      ]
+    : PROBLEM_SECTIONS;
+
+  const statusMessage =
+    problemStatus === "loading"
+      ? "문제를 불러오는 중입니다..."
+      : problemStatus === "error"
+      ? problemError || "문제를 불러오지 못했습니다."
+      : !problemId
+      ? "문제 ID가 없어 기본 예제를 보여줍니다."
+      : "";
+
   return (
     <Style.SolveContainer ref={containerRef}>
       <Style.Header>
         <Style.BackButton>‹</Style.BackButton>
-        <Style.HeaderTitle>최댓값 구하기</Style.HeaderTitle>
+        <Style.HeaderTitle>{problem?.name ?? FALLBACK_PROBLEM.name}</Style.HeaderTitle>
       </Style.Header>
 
       <Style.PageContent>
         <Style.LeftPanel>
           <Style.LeftPanelContent>
-            {PROBLEM_SECTIONS.map(({ title, content }) => (
+            {statusMessage && (
+              <Style.Section>
+                <Style.SectionTitle>알림</Style.SectionTitle>
+                <Style.ProblemStatus
+                  $variant={problemStatus === "error" ? "error" : "info"}
+                >
+                  {statusMessage}
+                </Style.ProblemStatus>
+              </Style.Section>
+            )}
+            {problemSections.map(({ title, content }) => (
               <Style.Section key={title}>
                 <Style.SectionTitle>{title}</Style.SectionTitle>
                 <Style.SectionText>{content}</Style.SectionText>
@@ -223,13 +338,13 @@ export default function SolvePage() {
                 readOnly
                 tabIndex={-1}
                 aria-readonly="true"
-                value={input}
+                value={sampleInput}
               />
             </Style.Section>
 
             <Style.Section>
               <Style.SectionTitle>예시 출력:</Style.SectionTitle>
-              <Style.ExampleOutput>9</Style.ExampleOutput>
+              <Style.ExampleOutput>{sampleOutput}</Style.ExampleOutput>
             </Style.Section>
           </Style.LeftPanelContent>
         </Style.LeftPanel>
@@ -264,7 +379,7 @@ export default function SolvePage() {
             <Style.Terminal ref={terminalRef} $height={terminalHeight}>
               <Style.TerminalHandle />
               <Style.TerminalHeader>실행 결과</Style.TerminalHeader>
-              <Style.TerminalOutput>{output}</Style.TerminalOutput>
+              <Style.TerminalOutput>{terminalOutput}</Style.TerminalOutput>
             </Style.Terminal>
 
             <Style.SubmitWrapper>
