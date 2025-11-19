@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 export const SolveContainer = styled.div`
   position: fixed;
@@ -101,7 +101,7 @@ export const ExampleTextarea = styled.textarea`
   border-radius: 10px;
   padding: 12px;
   color: #e8eaed;
-  font-family: Menlo, Monaco, 'Courier New', monospace;
+  font-family: Menlo, Monaco, "Courier New", monospace;
   font-size: 14px;
   resize: none;
   min-height: 70px;
@@ -114,7 +114,7 @@ export const ExampleOutput = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   padding: 12px;
-  font-family: Menlo, Monaco, 'Courier New', monospace;
+  font-family: Menlo, Monaco, "Courier New", monospace;
   font-size: 14px;
   color: #e8eaed;
   min-height: 40px;
@@ -127,7 +127,7 @@ export const ExampleOutput = styled.div`
 export const Divider = styled.div<{ $isResizing: boolean }>`
   width: 4px;
   background: ${({ $isResizing }) =>
-    $isResizing ? 'rgba(94, 234, 212, 0.7)' : 'rgba(255, 255, 255, 0.1)'};
+    $isResizing ? "rgba(94, 234, 212, 0.7)" : "rgba(255, 255, 255, 0.1)"};
   cursor: col-resize;
   flex-shrink: 0;
   transition: background 0.2s;
@@ -251,7 +251,7 @@ export const AIAssistantAvatar = styled.img`
 `;
 
 export const AIAssistantLabel = styled.div`
-  color: #FFFFFF;
+  color: #ffffff;
   font-size: 12px;
   margin-top: 4px;
 `;
@@ -289,21 +289,26 @@ export const ChatModalHeader = styled.div`
 
 export const ChatCloseButton = styled.button`
   position: absolute;
-  top: 8px;
-  right: -2px;
+  top: 6px;
+  right: 6px;
   width: 36px;
   height: 36px;
   border-radius: 0;
   background: transparent;
   border: none;
+  padding: 0;
   font-size: 24px;
   color: #7b8794;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-`;
+  outline: none;
 
+  &:focus {
+    outline: none;
+  }
+`;
 export const ChatModalBody = styled.div`
   flex: 1;
   display: flex;
@@ -326,23 +331,24 @@ export const ChatMessageRow = styled.div<{ $isUser?: boolean }>`
   display: flex;
   align-items: flex-end;
   gap: 12px;
-  justify-content: ${({ $isUser }) => ($isUser ? 'flex-end' : 'flex-start')};
+  justify-content: ${({ $isUser }) => ($isUser ? "flex-end" : "flex-start")};
 `;
 
 export const ChatMessageAvatar = styled.img<{ $hidden?: boolean }>`
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  display: ${({ $hidden }) => ($hidden ? 'none' : 'block')};
+  display: ${({ $hidden }) => ($hidden ? "none" : "block")};
   flex-shrink: 0;
   object-fit: cover;
 `;
 
 export const ChatMessageBubble = styled.div<{ $isUser?: boolean }>`
-  background: ${({ $isUser }) => ($isUser ? '#00b4b7' : '#f7f9fc')};
-  color: ${({ $isUser }) => ($isUser ? '#ffffff' : '#1a202c')};
-  border-radius: ${({ $isUser }) => ($isUser ? '16px 2px 16px 16px' : '2px 16px 16px 16px')};
-  border: ${({ $isUser }) => ($isUser ? 'none' : '1px solid #EDEDED')};
+  background: ${({ $isUser }) => ($isUser ? "#00b4b7" : "#f7f9fc")};
+  color: ${({ $isUser }) => ($isUser ? "#ffffff" : "#1a202c")};
+  border-radius: ${({ $isUser }) =>
+    $isUser ? "16px 2px 16px 16px" : "2px 16px 16px 16px"};
+  border: ${({ $isUser }) => ($isUser ? "none" : "1px solid #EDEDED")};
   padding: 12px 16px;
   font-size: 14px;
   line-height: 1.5;
@@ -388,9 +394,9 @@ export const ChatSendButton = styled.button<{ $active?: boolean }>`
   aspect-ratio: 1;
   border-radius: 50%;
   border: none;
-  background: ${({ $active }) => ($active ? '#00B4B7' : '#dbe4f0')};
-  color: ${({ $active }) => ($active ? '#ffffff' : '#7b8794')};
-  cursor: ${({ $active }) => ($active ? 'pointer' : 'default')};
+  background: ${({ $active }) => ($active ? "#00B4B7" : "#dbe4f0")};
+  color: ${({ $active }) => ($active ? "#ffffff" : "#7b8794")};
+  cursor: ${({ $active }) => ($active ? "pointer" : "default")};
   display: flex;
   align-items: center;
   justify-content: center;
