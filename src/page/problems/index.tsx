@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axiosInstance from "../../api/axiosInstance";
 import * as S from "./style";
 import SearchIcon from "../../assets/image/problems/search.png";
 import ArrowDownIcon from "../../assets/image/problems/arrow-down.png";
@@ -29,81 +30,6 @@ interface Problem {
   failed: boolean;
 }
 
-const mockProblems: Problem[] = [
-  {
-    id: 1,
-    title: "숫자야구",
-    difficulty: 1,
-    completedCount: 91,
-    successRate: 3,
-    solved: true,
-    failed: false,
-  },
-  {
-    id: 2,
-    title: "문자열과 알파벳 쿼리",
-    difficulty: 2,
-    completedCount: 31,
-    successRate: 0,
-    solved: false,
-    failed: false,
-  },
-  {
-    id: 3,
-    title: "문자열과 알파벳 쿼리",
-    difficulty: 3,
-    completedCount: 31,
-    successRate: 0,
-    solved: false,
-    failed: true,
-  },
-  {
-    id: 4,
-    title: "문자열과 알파벳 쿼리",
-    difficulty: 4,
-    completedCount: 31,
-    successRate: 0,
-    solved: false,
-    failed: false,
-  },
-  {
-    id: 5,
-    title: "문자열과 알파벳 쿼리",
-    difficulty: 5,
-    completedCount: 31,
-    successRate: 0,
-    solved: false,
-    failed: false,
-  },
-  {
-    id: 6,
-    title: "문자열과 알파벳 쿼리",
-    difficulty: 2,
-    completedCount: 31,
-    successRate: 0,
-    solved: true,
-    failed: false,
-  },
-  {
-    id: 7,
-    title: "문자열과 알파벳 쿼리",
-    difficulty: 2,
-    completedCount: 31,
-    successRate: 0,
-    solved: false,
-    failed: false,
-  },
-  {
-    id: 8,
-    title: "문자열과 알파벳 쿼리",
-    difficulty: 2,
-    completedCount: 31,
-    successRate: 0,
-    solved: false,
-    failed: false,
-  },
-];
-
 export default function Problems() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<string | null>(null);
@@ -114,9 +40,110 @@ export default function Problems() {
     "asc" | "desc" | null
   >(null);
   const [successRateLabel, setSuccessRateLabel] = useState<string | null>(null);
+  const [problems, setProblems] = useState<Problem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const apiUrl = import.meta.env.VITE_API_URL;
+
+  const difficultyMap: Record<string, number> = {
+    gold: 1,
+    silver: 2,
+    bronze: 3,
+    iron: 4,
+    jade: 5,
+  };
+
+  const difficultyReverseMap: Record<number, string> = {
+    1: "gold",
+    2: "silver",
+    3: "bronze",
+    4: "iron",
+    5: "jade",
+  };
+
+  const solvedStatusMap: Record<string, { solved: boolean; failed: boolean }> =
+    {
+      solved: { solved: true, failed: false },
+      failed: { solved: false, failed: true },
+      not_solved: { solved: false, failed: false },
+    };
+
+  useEffect(() => {
+    fetchProblems();
+  }, []);
+
+  const fetchProblems = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axiosInstance.get(`${apiUrl}/problems`);
+      mapProblems(response.data.problems);
+    } catch (error) {
+      console.error("Failed to fetch problems:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchFilteredProblems = async () => {
+    setIsLoading(true);
+    try {
+      const params: Record<string, string> = {};
+      if (difficultyFilter !== null) {
+        params.difficulty = difficultyReverseMap[difficultyFilter];
+      }
+      if (successRateFilter) {
+        params.correctRate = successRateFilter === "asc" ? "low" : "high";
+      }
+      if (sortBy) {
+        params.time = sortBy;
+      }
+
+      const response = await axiosInstance.post(
+        `${apiUrl}/problems/filter`,
+        params
+      );
+      mapProblems(response.data.problems);
+    } catch (error) {
+      console.error("Failed to fetch filtered problems:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchSearchProblems = async (query: string) => {
+    setIsLoading(true);
+    try {
+      const response = await axiosInstance.post(`${apiUrl}/problems/search`, {
+        name: query,
+      });
+      mapProblems(response.data.problems);
+    } catch (error) {
+      console.error("Failed to search problems:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const mapProblems = (apiProblems: any[]) => {
+    const mapped = apiProblems.map((p) => ({
+      id: p.problemId,
+      title: p.name,
+      difficulty: difficultyMap[p.difficulty],
+      completedCount: p.solvedCount,
+      successRate: p.correctRate,
+      ...solvedStatusMap[p.solvedResult],
+    }));
+    setProblems(mapped);
+  };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+    const value = e.target.value;
+    setSearchTerm(value);
+    if (value.trim()) {
+      fetchSearchProblems(value);
+    } else {
+      fetchProblems();
+    }
   };
 
   const handleDifficultySelect = (
@@ -126,6 +153,9 @@ export default function Problems() {
     setDifficultyFilter(level);
     setDifficultyLabel(label);
     setOpenDropdown(null);
+    if (level !== null || successRateFilter || sortBy) {
+      fetchFilteredProblems();
+    }
   };
 
   const handleSuccessRateSelect = (
@@ -135,9 +165,12 @@ export default function Problems() {
     setSuccessRateFilter(order);
     setSuccessRateLabel(label);
     setOpenDropdown(null);
+    if (difficultyFilter || order || sortBy) {
+      fetchFilteredProblems();
+    }
   };
 
-  let filteredProblems = mockProblems.filter((problem) =>
+  let filteredProblems = problems.filter((problem) =>
     problem.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
