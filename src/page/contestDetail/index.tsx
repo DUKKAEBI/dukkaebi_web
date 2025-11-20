@@ -1,35 +1,80 @@
 import * as S from "./styles";
+import axiosInstance from "../../api/axiosInstance";
+import { useParams, useNavigate } from "react-router-dom";
+import { useEffect , useState } from "react";
+
 // 문제 타입 정의
 interface Problem {
-  id: number;
-  number: string;
-  title: string;
-  status: "submitted" | "not-submitted";
+  problemId: number;
+  name: string;
+  difficulty: "COPPER" | "IRON"|"SLIVER"|"GOLD"| "JADE";
+  solvedCount:number;
+  correctRate:number;
+  solvedResult: "NOT_SOLVED" | "SOLVED" | "FAILED";
+  addedAt: string;
 }
 
-// 목업 데이터
-const MOCK_PROBLEMS: Problem[] = [
-  { id: 1, number: "01", title: "숫자야구", status: "not-submitted" },
-  { id: 2, number: "02", title: "문자열과 알파벳 쿼리", status: "submitted" },
-  { id: 3, number: "03", title: "문자열과 알파벳 쿼리", status: "submitted" },
-  { id: 4, number: "04", title: "문자열과 알파벳 쿼리", status: "submitted" },
-  {
-    id: 5,
-    number: "05",
-    title: "문자열과 알파벳 쿼리",
-    status: "not-submitted",
-  },
-  {
-    id: 6,
-    number: "06",
-    title: "문자열과 알파벳 쿼리",
-    status: "not-submitted",
-  },
-  { id: 7, number: "07", title: "문자열과 알파벳 쿼리", status: "submitted" },
-  { id: 8, number: "08", title: "문자열과 알파벳 쿼리", status: "submitted" },
-];
+interface ContestDetail {
+  code: string;
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  participantCount : number;
+  problems: Problem[];
+}
+
 
 export const ContestDetailPage = () => {
+  const { contestId } = useParams<{ contestId: string }>();
+  const [contestDetails, setContestDetails] = useState<ContestDetail | null>(null);
+  const navigate = useNavigate();
+
+  // 문제 진행도 계산 함수
+  const calculateProgress = (): number => {
+    if (!contestDetails || contestDetails.problems.length === 0) {
+      return 0;
+    }
+    
+    const solvedCount = contestDetails.problems.filter(
+      problem => problem.solvedResult === "SOLVED" || problem.solvedResult === "FAILED"
+    ).length;
+    
+    return Math.round((solvedCount / contestDetails.problems.length) * 100);
+  };
+
+  const startTest = () => {
+    if (!contestDetails) {
+      return;
+    }
+    
+    if (contestDetails.startDate > new Date().toISOString()) {
+      alert("아직 대회가 시작되지 않았습니다.");
+      return;
+    }else if (contestDetails.endDate < new Date().toISOString()) {
+      alert("이미 대회가 종료되었습니다.");
+      return;
+    }else{
+      navigate('/solve');
+    }
+    
+    
+  };
+
+  useEffect(() => {
+    const fetchContestDetails = async () => {
+      try {
+        const response = await axiosInstance.get<ContestDetail>(`/contest/${contestId}`);
+        setContestDetails(response.data);
+      } catch (error) {
+        console.error("Error fetching contest details:", error);        
+      }
+    };
+    
+    fetchContestDetails();
+  }, [contestId]);
+
+  
   return (
     <>
       <S.Container>
@@ -80,15 +125,15 @@ export const ContestDetailPage = () => {
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 12 }}
               >
-                <S.ContestTitle>DGSW 프로그래밍 대회</S.ContestTitle>
+                <S.ContestTitle>{contestDetails?.title}</S.ContestTitle>
                 <S.ContestDescription>
                   <S.DescriptionText>
-                    DGSW 프로그래밍 대회는 교육봉사 동아리 '두카미'에서 진행하는
+                    {contestDetails?.description}
                     <br />
                     알고리즘 대회 입니다.
                   </S.DescriptionText>
                   <S.ContestMeta>
-                    2025.11.10 ~ 2025.11.14 ・100명 참여중
+                    {contestDetails?.startDate} ~ {contestDetails?.endDate} ・{contestDetails?.participantCount}명 참여중
                   </S.ContestMeta>
                 </S.ContestDescription>
               </div>
@@ -96,9 +141,9 @@ export const ContestDetailPage = () => {
               {/* Progress Bar */}
               <S.ProgressSection>
                 <S.ProgressBarContainer>
-                  <S.ProgressBar progress={10} />
+                  <S.ProgressBar progress={calculateProgress()} />
                 </S.ProgressBarContainer>
-                <S.ProgressText>10% 진행</S.ProgressText>
+                <S.ProgressText>{calculateProgress()}%</S.ProgressText>
               </S.ProgressSection>
             </S.ContestDetails>
           </S.ContestInfoContent>
@@ -122,15 +167,15 @@ export const ContestDetailPage = () => {
 
               {/* Table Body */}
               <S.TableBody>
-                {MOCK_PROBLEMS.map((problem, index) => (
+                {contestDetails?.problems.map((problem, index) => (
                   <S.TableRow
-                    key={problem.id}
-                    $isLast={index === MOCK_PROBLEMS.length - 1}
+                    key={problem.problemId}
+                    $isLast={index === contestDetails.problems.length - 1}
                   >
-                    <S.ProblemNumber>{problem.number}</S.ProblemNumber>
-                    <S.ProblemTitle>{problem.title}</S.ProblemTitle>
-                    <S.ProblemStatus $status={problem.status}>
-                      {problem.status === "submitted" ? "제출 완료" : "미제출"}
+                    <S.ProblemNumber>{problem.problemId}</S.ProblemNumber>
+                    <S.ProblemTitle>{problem.name}</S.ProblemTitle>
+                    <S.ProblemStatus $status={problem.solvedResult}>
+                      {problem.solvedResult === "SOLVED" || problem.solvedResult === "FAILED" ? "제출 완료" : "미제출"}
                     </S.ProblemStatus>
                   </S.TableRow>
                 ))}
@@ -142,15 +187,15 @@ export const ContestDetailPage = () => {
           <S.ContestInfoCard>
             <S.CardContent>
               <S.CardInfo>
-                <S.CardTitle>DGSW 프로그래밍 대회</S.CardTitle>
+                <S.CardTitle>{contestDetails?.title}</S.CardTitle>
                 <S.CardDetails>
-                  <S.CardDetail>시작 일시 : 2025년 11월 14일 12:00</S.CardDetail>
-                  <S.CardDetail>코딩 테스트 시간 : 30분</S.CardDetail>
-                  <S.CardDetail>총 10문제</S.CardDetail>
+                  <S.CardDetail>시작 일시 : {contestDetails?.startDate} 12:00</S.CardDetail>
+                  {/* <S.CardDetail>코딩 테스트 시간 : 30분</S.CardDetail> */}
+                  <S.CardDetail>총 {contestDetails?.problems.length}문제</S.CardDetail>
                 </S.CardDetails>
               </S.CardInfo>
 
-              <S.StartButton>코딩테스트 시작하기</S.StartButton>
+              <S.StartButton onClick={startTest}>코딩테스트 시작하기</S.StartButton>
             </S.CardContent>
           </S.ContestInfoCard>
         </S.MainContentArea>

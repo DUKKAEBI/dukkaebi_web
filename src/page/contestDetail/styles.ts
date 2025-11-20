@@ -329,12 +329,12 @@ export const ProblemTitle = styled.span`
 `;
 
 export const ProblemStatus = styled.span<{
-  $status: "submitted" | "not-submitted";
+  $status: "SOLVED" | "FAILED" | "NOT_SOLVED";
 }>`
   font-family: "Pretendard", sans-serif;
   font-weight: 500;
   font-size: 16px;
-  color: ${(props) => (props.$status === "submitted" ? "#00B4B7" : "#BDBDBD")};
+  color: ${(props) => (props.$status === "SOLVED" || props.$status === "FAILED" ? "#00B4B7" : "#BDBDBD")};
   text-align: right;
 
   @media (max-width: 480px) {

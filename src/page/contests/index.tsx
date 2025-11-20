@@ -130,6 +130,16 @@ export const ContestPage = () => {
     }
   };
 
+  const moveToContestDetail = (contestCode: string) => {
+    const targetContest = contests.find(contests => contestCode === contests.code);
+    if (targetContest?.status === "JOINED") {
+      navigate(`/contests/${contestCode}`);
+    }else{
+      return;
+    }
+    
+  };
+
   useEffect(() => {
     const getContests = async (): Promise<Contest[]> => {
       try {
@@ -243,7 +253,7 @@ export const ContestPage = () => {
             <S.ContestsGrid>
               {currentContests.length > 0 ? (
                 currentContests.map((contest) => (
-                  <S.ContestCard key={contest.code}>
+                  <S.ContestCard key={contest.code} onClick={() => moveToContestDetail(contest.code)}>
                     <S.CardImageWrapper>
                       <S.CardImage src={"https://i.ibb.co/bgdgkTBG/image.png"} alt={contest.title} />
                       <S.CardBadge
