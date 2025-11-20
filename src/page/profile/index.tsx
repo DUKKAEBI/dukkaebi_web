@@ -14,51 +14,51 @@ import { Header } from "../../components/header";
 import { Footer } from "../../components/footer";
 import axiosInstance from "../../api/axiosInstance";
 
-interface StudyDay {
-  date: string;
-  solved: number;
-}
-
-interface StudyMonth {
-  year: number;
-  month: number;
-  days: StudyDay[];
-}
-
 interface UserData {
   id?: number;
   name?: string;
   nickname?: string;
   tier?: string;
-  streak?: number;
   score?: number;
-  studys?: StudyMonth[];
 }
 
-// Transform studys data to heatmap format (23 weeks × 7 days)
-const generateHeatmapData = (studys: StudyMonth[]): string[][] => {
-  const data: string[][] = [];
+type ContributionsResponse = Record<string, number>;
+
+interface StreakResponse {
+  streak?: number;
+}
+
+interface HeatmapCellData {
+  date: string;
+  intensity: string;
+  solved: number;
+}
+
+const formatDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+// Transform contributions data to heatmap format (23 weeks × 7 days)
+const generateHeatmapData = (
+  contributions: ContributionsResponse = {}
+): HeatmapCellData[][] => {
+  const data: HeatmapCellData[][] = [];
   const today = new Date();
   const startDate = new Date(today);
   startDate.setDate(today.getDate() - (23 * 7 - 1)); // 23 weeks ago
 
-  // Create a map of date -> solved count
-  const solvedMap = new Map<string, number>();
-  studys.forEach((study) => {
-    study.days.forEach((day) => {
-      solvedMap.set(day.date, day.solved);
-    });
-  });
-
   // Generate heatmap cells (23 weeks × 7 days)
   for (let week = 0; week < 23; week++) {
-    const weekData: string[] = [];
+    const weekData: HeatmapCellData[] = [];
     for (let day = 0; day < 7; day++) {
       const cellDate = new Date(startDate);
       cellDate.setDate(startDate.getDate() + week * 7 + day);
 
-      const dateStr = cellDate.toISOString().split("T")[0];
-      const solved = solvedMap.get(dateStr) || 0;
+      const dateStr = formatDate(cellDate);
+      const solved = contributions[dateStr] || 0;
 
       // Map solved count to intensity
       let intensity = "0";
@@ -68,7 +68,7 @@ const generateHeatmapData = (studys: StudyMonth[]): string[][] => {
         else intensity = "20";
       }
 
-      weekData.push(intensity);
+      weekData.push({ date: dateStr, intensity, solved });
     }
     data.push(weekData);
   }
@@ -153,52 +153,74 @@ const Profile = () => {
   const [name, setName] = useState<string>("");
   const [streak, setStreak] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
-  const [heatmapData, setHeatmapData] = useState<string[][]>([]);
+  const [heatmapData, setHeatmapData] = useState<HeatmapCellData[][]>(
+    generateHeatmapData()
+  );
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axiosInstance.get<UserData>("/user");
-        console.log("Full API Response:", response);
-        console.log("Response Data:", response.data);
+        const today = new Date();
+        const contributionsStart = new Date(
+          today.getFullYear(),
+          today.getMonth() - 1,
+          1
+        );
+        const contributionsEnd = new Date(
+          today.getFullYear(),
+          today.getMonth() + 1,
+          1
+        );
+
+        const [userResponse, contributionsResponse, streakResponse] =
+          await Promise.all([
+            axiosInstance.get<UserData>("/user"),
+            axiosInstance.get<ContributionsResponse>(
+              "/user/activity/contributions",
+              {
+                params: {
+                  start: formatDate(contributionsStart),
+                  end: formatDate(contributionsEnd),
+                },
+              }
+            ),
+            axiosInstance.get<StreakResponse>("/user/activity/streak"),
+          ]);
 
         // Handle both direct and nested response structures
         const userData =
-          (response.data as UserData & { data?: UserData })?.data ||
-          response.data;
-
-        console.log("User Data:", userData);
-        console.log("Name/Nickname:", userData?.name || userData?.nickname);
-        console.log("Streak:", userData?.streak);
-        console.log("Score:", userData?.score);
+          (userResponse.data as UserData & { data?: UserData })?.data ||
+          userResponse.data;
 
         // Use nickname if name is not available
         if (userData?.name || userData?.nickname) {
           setName(userData.name || userData.nickname || "");
         }
-        if (userData?.streak !== undefined && userData?.streak !== null) {
-          setStreak(userData.streak);
-        } else {
-          // Default to 0 if streak is not provided
-          setStreak(0);
-        }
         if (userData?.score !== undefined && userData?.score !== null) {
           setScore(userData.score);
         }
 
-        // Transform studys data to heatmap format
-        if (userData?.studys && Array.isArray(userData.studys)) {
-          const heatmap = generateHeatmapData(userData.studys);
-          setHeatmapData(heatmap);
-        } else {
-          // Initialize empty heatmap if studys is not provided
-          const emptyHeatmap = Array.from({ length: 23 }, () =>
-            Array.from({ length: 7 }, () => "0")
-          );
-          setHeatmapData(emptyHeatmap);
-        }
+        const contributionsData =
+          (
+            contributionsResponse.data as ContributionsResponse & {
+              data?: ContributionsResponse;
+            }
+          )?.data ||
+          contributionsResponse.data ||
+          {};
+        setHeatmapData(generateHeatmapData(contributionsData));
+
+        const streakData =
+          (streakResponse.data as StreakResponse & { data?: StreakResponse })
+            ?.data || streakResponse.data;
+        setStreak(
+          typeof streakData?.streak === "number" ? streakData.streak : 0
+        );
       } catch (error) {
-        console.error("Failed to fetch user data:", error);
+        console.error("Failed to fetch profile data:", error);
+        // Initialize fallback heatmap to avoid empty UI
+        setHeatmapData(generateHeatmapData());
+        setStreak(0);
       }
     };
 
@@ -237,19 +259,19 @@ const Profile = () => {
                 <S.StatValue>100</S.StatValue>
               </S.StatItem>
               <S.StatItem>
-                <S.StatLabel error>시간 초과</S.StatLabel>
+                <S.StatLabel $error>시간 초과</S.StatLabel>
                 <S.StatValue>18</S.StatValue>
               </S.StatItem>
               <S.StatItem>
-                <S.StatLabel error>메모리 초과</S.StatLabel>
+                <S.StatLabel $error>메모리 초과</S.StatLabel>
                 <S.StatValue>20</S.StatValue>
               </S.StatItem>
               <S.StatItem>
-                <S.StatLabel error>런타임에러</S.StatLabel>
+                <S.StatLabel $error>런타임에러</S.StatLabel>
                 <S.StatValue>1</S.StatValue>
               </S.StatItem>
               <S.StatItem>
-                <S.StatLabel error>컴파일에러</S.StatLabel>
+                <S.StatLabel $error>컴파일에러</S.StatLabel>
                 <S.StatValue>2</S.StatValue>
               </S.StatItem>
             </S.StatsSection>
@@ -258,7 +280,7 @@ const Profile = () => {
           {/* Right Content Area */}
           <S.RightContent>
             {/* Tier Card */}
-            <S.TierCard backgroundColor={getTierBackgroundColor(score)}>
+            <S.TierCard $backgroundColor={getTierBackgroundColor(score)}>
               <S.TierCharacter src={getTierImage(score)} alt="tier character" />
               <S.TierInfo>
                 <S.TierBadge>
@@ -314,25 +336,19 @@ const Profile = () => {
                 </S.DayLabels>
 
                 <S.HeatmapGrid>
-                  {heatmapData.length > 0
-                    ? heatmapData.map((week, weekIndex) => (
-                        <S.HeatmapWeek key={weekIndex}>
-                          {week.map((intensity, dayIndex) => (
-                            <S.HeatmapCell
-                              key={dayIndex}
-                              intensity={intensity}
-                            />
-                          ))}
-                        </S.HeatmapWeek>
-                      ))
-                    : // Show empty heatmap while loading
-                      Array.from({ length: 23 }).map((_, weekIndex) => (
-                        <S.HeatmapWeek key={weekIndex}>
-                          {Array.from({ length: 7 }).map((_, dayIndex) => (
-                            <S.HeatmapCell key={dayIndex} intensity="0" />
-                          ))}
-                        </S.HeatmapWeek>
+                  {heatmapData.map((week, weekIndex) => (
+                    <S.HeatmapWeek key={weekIndex}>
+                      {week.map((cell, dayIndex) => (
+                        <S.HeatmapCell
+                          key={`${cell.date}-${dayIndex}`}
+                          $intensity={cell.intensity}
+                          data-tooltip={`${cell.date} · ${cell.solved} 문제`}
+                          aria-label={`${cell.date} · ${cell.solved} 문제`}
+                          title={`${cell.date} · ${cell.solved} 문제`}
+                        />
                       ))}
+                    </S.HeatmapWeek>
+                  ))}
                 </S.HeatmapGrid>
               </S.HeatmapContainer>
             </S.HeatmapCard>
