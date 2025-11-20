@@ -1,6 +1,4 @@
 import * as S from "./styles";
-
-
 // 문제 타입 정의
 interface Problem {
   id: number;
