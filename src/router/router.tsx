@@ -16,6 +16,7 @@ export default function AppRoutes() {
       <Route path="/" element={<Main />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/solve" element={<SolvePage />} />
+      <Route path="/solve/:problemId" element={<SolvePage />} />
       <Route path="/problems" element={<Problems />} />
       <Route path="/contests" element={<ContestPage />} />
       <Route path="/contests/:contestId" element={<ContestDetailPage />} />

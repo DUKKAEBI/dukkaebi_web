@@ -45,11 +45,43 @@ export const HeaderTitle = styled.h1`
   color: #e8eaed;
 `;
 
+export const HeaderActions = styled.div`
+  margin-left: auto;
+`;
+
+export const LanguageSelect = styled.select`
+  background: #3c4b55;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  width: 90px;
+  height: 33px;
+  padding: 4px 28px 4px 12px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  appearance: none;
+  cursor: pointer;
+  position: relative;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='7' viewBox='0 0 12 7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23ffffff' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+
+  &:focus {
+    outline: none;
+  }
+
+  &::-ms-expand {
+    display: none;
+  }
+`;
+
 export const PageContent = styled.div`
   display: flex;
   flex: 1;
   width: 100%;
   position: relative;
+  min-height: 0;
 `;
 
 export const LeftPanel = styled.div`
@@ -61,19 +93,23 @@ export const LeftPanel = styled.div`
   min-width: 20%;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   text-align: left;
   height: 100%;
+  min-height: 0;
+  overflow-y: auto;
 `;
 
 export const LeftPanelContent = styled.div`
   flex: 1 1 auto;
-  overflow-y: auto;
   padding-right: 4px;
+  padding-bottom: 120px;
+  width: 100%;
 `;
 
 export const Section = styled.div`
   margin-bottom: 32px;
+  width: 100%;
 
   &:last-of-type {
     margin-bottom: 0;
@@ -92,10 +128,21 @@ export const SectionText = styled.div`
   color: #cdd1d8;
   font-size: 16px;
   line-height: 1.6;
+  white-space: pre-wrap;
+`;
+
+export const ProblemStatus = styled.div<{ $variant?: 'error' | 'info' }>`
+  color: ${({ $variant }) => ($variant === 'error' ? '#f08080' : '#7a8697')};
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 8px;
 `;
 
 export const ExampleTextarea = styled.textarea`
   width: 100%;
+  max-width: 100%;
+  align-self: stretch;
+  min-width: 0;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
@@ -107,21 +154,25 @@ export const ExampleTextarea = styled.textarea`
   min-height: 70px;
   box-sizing: border-box;
   cursor: default;
+  pointer-events: none;
 `;
 
-export const ExampleOutput = styled.div`
+export const ExampleOutput = styled.pre`
+  width: 100%;
+  max-width: 100%;
+  align-self: stretch;
+  min-width: 0;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   padding: 12px;
+  color: #e8eaed;
   font-family: Menlo, Monaco, "Courier New", monospace;
   font-size: 14px;
-  color: #e8eaed;
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  width: 100%;
+  min-height: 70px;
   box-sizing: border-box;
+  white-space: pre-wrap;
+  margin: 0;
 `;
 
 export const Divider = styled.div<{ $isResizing: boolean }>`
@@ -143,6 +194,8 @@ export const RightPanel = styled.div<{ $width: number }>`
   min-width: 20%;
   flex-shrink: 0;
   position: relative;
+  min-height: 0;
+  overflow-y: auto;
 `;
 
 export const EditorContainer = styled.div`
@@ -221,6 +274,12 @@ export const SubmitButton = styled.button`
   &:hover {
     background: #00969a;
   }
+
+  &:disabled {
+    background: #4a6b70;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
 `;
 
 export const AIAssistantWrapper = styled.button`
@@ -235,6 +294,11 @@ export const AIAssistantWrapper = styled.button`
   border: none;
   padding: 0;
   cursor: pointer;
+  outline: none;
+
+  &:focus {
+    outline: none;
+  }
 `;
 
 export const AIAssistantAvatarWrapper = styled.div`
@@ -281,7 +345,7 @@ export const ChatModal = styled.div`
 `;
 
 export const ChatModalHeader = styled.div`
-  padding: 16px;
+  padding: 20px;
   display: flex;
   justify-content: flex-end;
   position: relative;
