@@ -342,6 +342,7 @@ export const CardHeader = styled.div`
 `;
 
 export const Difficulty = styled.div`
+  display: flex;
   color: #00b4b7;
   font-size: 12px;
   font-weight: 500;
@@ -350,6 +351,7 @@ export const Difficulty = styled.div`
 `;
 
 export const CardTitle = styled.h3`
+  display: flex;
   color: black;
   font-size: 16px;
   font-weight: 500;

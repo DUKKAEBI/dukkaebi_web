@@ -61,6 +61,39 @@ const generateHeatmapData = (
   return cells;
 };
 
+const recommendedCourses = [
+  {
+    id: 1,
+    difficulty: "난이도 : 상",
+    title: "자료구조 알고리즘",
+    tags: ["#큐", "#스택", "#이진탐색", "#그래프"],
+  },
+  {
+    id: 2,
+    difficulty: "난이도 : 중",
+    title: "DP 집중 연습",
+    tags: ["#dp", "#동적계획법", "#냅색", "#계단오르기"],
+  },
+  {
+    id: 3,
+    difficulty: "난이도 : 중상",
+    title: "그리디 & 구현",
+    tags: ["#그리디", "#시뮬레이션", "#구현", "#정렬"],
+  },
+  {
+    id: 4,
+    difficulty: "난이도 : 하",
+    title: "입출력 리마인드",
+    tags: ["#입출력", "#문자열", "#기본구현"],
+  },
+  {
+    id: 5,
+    difficulty: "난이도 : 상",
+    title: "그래프 최단거리",
+    tags: ["#다익스트라", "#벨만포드", "#플로이드워셜"],
+  },
+];
+
 const Main = () => {
   const [streak, setStreak] = useState(0);
   const [contributions, setContributions] = useState<ContributionsResponse>({});
@@ -209,18 +242,17 @@ const Main = () => {
           </S.SectionHeader>
 
           <S.CourseGrid>
-            {[1, 2, 3, 4].map((item) => (
-              <S.CourseCard key={item}>
+            {recommendedCourses.map((course) => (
+              <S.CourseCard key={course.id}>
                 <S.CardContent>
                   <S.CardHeader>
-                    <S.Difficulty>난이도 : 상</S.Difficulty>
-                    <S.CardTitle>자료구조 알고리즘</S.CardTitle>
+                    <S.Difficulty>{course.difficulty}</S.Difficulty>
+                    <S.CardTitle>{course.title}</S.CardTitle>
                   </S.CardHeader>
                   <S.TagList>
-                    <S.Tag>#큐</S.Tag>
-                    <S.Tag>#스택</S.Tag>
-                    <S.Tag>#이진탐색</S.Tag>
-                    <S.Tag>#그래프</S.Tag>
+                    {course.tags.map((tag) => (
+                      <S.Tag key={`${course.id}-${tag}`}>{tag}</S.Tag>
+                    ))}
                   </S.TagList>
                 </S.CardContent>
                 <S.SolveButton>문제 풀기 →</S.SolveButton>
