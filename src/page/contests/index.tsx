@@ -1,57 +1,153 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Header } from "../../components/header";
 import { Footer } from "../../components/footer";
+import axiosInstance from "../../api/axiosInstance";
+import { useNavigate } from "react-router-dom";
 import * as S from "./styles";
 
 // 대회 타입 정의
 interface Contest {
-  id: number;
+  code: string;
   title: string;
-  daysLeft: number;
-  participants: number;
-  status: "available" | "participating" | "closed";
-  image: string;
+  dDay: string;
+  participantCount: number;
+  status: "JOINABLE" | "JOINED" | "ENDED";
 }
 
 // 목업 데이터
 const MOCK_CONTESTS: Contest[] = Array.from({ length: 16 }, (_, i) => ({
-  id: i + 1,
+  code: (12345 + i).toString(),
   title: "DGSW 프로그래밍 대회",
-  daysLeft: 2,
-  participants: 100,
-  status: i % 4 === 1 ? "participating" : i % 4 === 2 ? "closed" : "available",
+  dDay: "2",
+  participantCount: 100,
+  status: i % 4 === 1 ? "JOINED" : i % 4 === 2 ? "ENDED" : "JOINABLE",
   image: "https://i.ibb.co/bgdgkTBG/image.png",
 }));
 
 export const ContestPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [currentSlide, setCurrentSlide] = useState(1);
+  const [contests, setContests] = useState<Contest[]>(MOCK_CONTESTS);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const navigate = useNavigate();
+  
+  const ITEMS_PER_PAGE = 16;
+  
+  // 전체 페이지 수 계산
+  const totalPages = Math.ceil(contests.length / ITEMS_PER_PAGE);
+  
+  // 현재 페이지의 대회 목록
+  const currentContests = contests.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+  
+  // 페이지 번호 배열 생성 (최대 5개만 표시)
+  const getPageNumbers = () => {
+    const maxVisiblePages = 5;
+    const pages = [];
+    
+    if (totalPages <= maxVisiblePages) {
+      // 전체 페이지가 5개 이하면 모두 표시
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // 현재 페이지를 중심으로 5개 표시
+      let startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+      
+      // 끝에서 2페이지 이내면 마지막 5개 표시
+      if (endPage - startPage < maxVisiblePages - 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+    }
+    
+    return pages;
+  };
+  
+  const pageNumbers = getPageNumbers();
 
   const getStatusText = (status: Contest["status"]) => {
     switch (status) {
-      case "available":
+      case "JOINABLE":
         return "참가하기";
-      case "participating":
+      case "JOINED":
         return "참여중";
-      case "closed":
+      case "ENDED":
         return "대회 종료";
     }
   };
 
   const getStatusColor = (status: Contest["status"]) => {
     switch (status) {
-      case "available":
+      case "JOINABLE":
         return "#00B4B7";
-      case "participating":
+      case "JOINED":
         return "#E0E0E0";
-      case "closed":
+      case "ENDED":
         return "#EB5757";
     }
   };
 
   const getStatusTextColor = (status: Contest["status"]) => {
-    return status === "participating" ? "#828282" : "#FFFFFF";
+    return status === "JOINED" ? "#828282" : "#FFFFFF";
   };
+
+  const getFilteredContests = ()=> {
+    return contests.filter((contest) =>
+      contest.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }
+
+  const joinConest = async (contestCode: string) => {
+    const targetContest = contests.find(contests => contestCode === contests.code);
+    if (!targetContest || targetContest.status !== "JOINABLE") {
+      return;
+    }
+
+    const promptMessage = prompt("대회 코드를 입력해주세요.");
+
+    if (!promptMessage) return;
+
+    try{
+      const res = await axiosInstance.post(`/contest/${promptMessage}/join`, null,{
+        params:{
+          code: promptMessage
+        }
+      });
+      console.log("Join contest response:", res.data);
+      alert("대회 참가에 성공했습니다.");
+      navigate(`/contests/${contestCode}`);
+    }catch(error) {
+      alert("대회 참가에 실패했습니다. 대회 코드를 다시 확인해주세요.");
+      console.error("Error joining contest:", error);
+    }
+  };
+
+  useEffect(() => {
+    const getContests = async (): Promise<Contest[]> => {
+      try {
+        const response = await axiosInstance.get(`/contest/list`);
+        // API 응답이 배열인지 확인
+        const data = Array.isArray(response.data) ? response.data : [];
+        setContests(data);
+        return data;
+      } catch (error) {
+        console.error("Error fetching contests:", error);
+        // 에러 발생 시 목업 데이터 사용
+        setContests(MOCK_CONTESTS);
+        return [];
+      }
+    };
+
+    getContests();
+  }, []);
 
   return (
     <>
@@ -124,7 +220,7 @@ export const ContestPage = () => {
         <S.MainContent>
           {/* Search Bar */}
           <S.SearchBar>
-            <S.SearchInput type="text" placeholder="대회 이름을 검색하세요.." />
+            <S.SearchInput type="text" placeholder="대회 이름을 검색하세요.." onChange={(e)=> { setSearchTerm(e.target.value)} }/>
             <S.SearchIcon>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -145,80 +241,109 @@ export const ContestPage = () => {
           {/* Contests Grid */}
           <S.ContestsSection>
             <S.ContestsGrid>
-              {MOCK_CONTESTS.map((contest) => (
-                <S.ContestCard key={contest.id}>
-                  <S.CardImageWrapper>
-                    <S.CardImage src={contest.image} alt={contest.title} />
-                    <S.CardBadge
-                      $status={contest.status}
-                      $bgColor={getStatusColor(contest.status)}
-                      $textColor={getStatusTextColor(contest.status)}
-                    >
-                      {getStatusText(contest.status)}
-                    </S.CardBadge>
-                  </S.CardImageWrapper>
-                  <S.CardContent>
-                    <S.CardTitle>{contest.title}</S.CardTitle>
-                    <S.CardInfo>
-                      종료까지 D-{contest.daysLeft} ・{contest.participants}명
-                      참여중
-                    </S.CardInfo>
-                  </S.CardContent>
-                </S.ContestCard>
-              ))}
+              {currentContests.length > 0 ? (
+                currentContests.map((contest) => (
+                  <S.ContestCard key={contest.code}>
+                    <S.CardImageWrapper>
+                      <S.CardImage src={"https://i.ibb.co/bgdgkTBG/image.png"} alt={contest.title} />
+                      <S.CardBadge
+                        onClick={() =>joinConest(contest.code)}
+                        $status={contest.status}
+                        $bgColor={getStatusColor(contest.status)}
+                        $textColor={getStatusTextColor(contest.status)}
+                      >
+                        {getStatusText(contest.status)}
+                      </S.CardBadge>
+                    </S.CardImageWrapper>
+                    <S.CardContent>
+                      <S.CardTitle>{contest.title}</S.CardTitle>
+                      <S.CardInfo>
+                        {contest.dDay} ・{contest.participantCount}명
+                        참여중
+                      </S.CardInfo>
+                    </S.CardContent>
+                  </S.ContestCard>
+                ))
+              ) : searchTerm ? (
+                  getFilteredContests().map((contest) => (
+                    <S.ContestCard key={contest.code}>
+                      <S.CardImageWrapper>
+                        <S.CardImage src={"https://i.ibb.co/bgdgkTBG/image.png"} alt={contest.title} />
+                        <S.CardBadge
+                          $status={contest.status}
+                          $bgColor={getStatusColor(contest.status)}
+                          $textColor={getStatusTextColor(contest.status)}
+                        >
+                          {getStatusText(contest.status)}
+                        </S.CardBadge>
+                      </S.CardImageWrapper>
+                      <S.CardContent>
+                        <S.CardTitle>{contest.title}</S.CardTitle>
+                        <S.CardInfo>
+                          {contest.dDay} ・{contest.participantCount}명
+                          참여중
+                        </S.CardInfo>
+                      </S.CardContent>
+                    </S.ContestCard>
+                  ))
+              ) : (
+                <div>아직 대회가 없습니다.</div>
+              )}
             </S.ContestsGrid>
 
             {/* Pagination */}
             <S.Pagination>
               <S.PaginationButton
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fill="none"
-                    stroke="#BDBDBD"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m14 7l-5 5l5 5"
-                    strokeWidth="1"
-                  />
-                </svg>
-              </S.PaginationButton>
-              <S.PaginationNumbers>
-                {[1, 2, 3, 4, 5].map((num) => (
-                  <S.PageNumber
-                    key={num}
-                    $active={num === currentPage}
-                    onClick={() => setCurrentPage(num)}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
                   >
-                    {num}
-                  </S.PageNumber>
-                ))}
-              </S.PaginationNumbers>
-              <S.PaginationButton
-                onClick={() => setCurrentPage(Math.min(5, currentPage + 1))}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
+                    <path
+                      fill="none"
+                      stroke="#BDBDBD"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="m14 7l-5 5l5 5"
+                      strokeWidth="1"
+                    />
+                  </svg>
+                </S.PaginationButton>
+                <S.PaginationNumbers>
+                  {pageNumbers.map((num) => (
+                    <S.PageNumber
+                      key={num}
+                      $active={num === currentPage}
+                      onClick={() => setCurrentPage(num)}
+                    >
+                      {num}
+                    </S.PageNumber>
+                  ))}
+                </S.PaginationNumbers>
+                <S.PaginationButton
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
                 >
-                  <path
-                    fill="none"
-                    stroke="#BDBDBD"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m10 17l5-5l-5-5"
-                    strokeWidth="1"
-                  />
-                </svg>
-              </S.PaginationButton>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      fill="none"
+                      stroke="#BDBDBD"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="m10 17l5-5l-5-5"
+                      strokeWidth="1"
+                    />
+                  </svg>
+                </S.PaginationButton>
             </S.Pagination>
           </S.ContestsSection>
         </S.MainContent>

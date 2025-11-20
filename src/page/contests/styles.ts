@@ -5,7 +5,7 @@ export const Container = styled.div`
   margin: 0;
   padding: 0;
   width: 100vw;
-  min-height: 100%;
+  min-height: 100vh;
   background: white;
   display: flex;
   flex-direction: column;
@@ -167,17 +167,20 @@ export const ContestsSection = styled.section`
   max-width: 794px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 60px;
+  padding:20px;
 `;
 
 export const ContestsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(183px, 1fr));
+  grid-template-columns: repeat(auto-fill, 183px);
+
   gap: 20px;
   width: 100%;
+  justify-content: center;
 
   @media (max-width: 850px) {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, 150px);
   }
 `;
 
@@ -205,7 +208,7 @@ export const CardImage = styled.img`
   object-fit: cover;
 `;
 
-export const CardBadge = styled.div<{
+export const CardBadge = styled.button<{
   $status: string;
   $bgColor: string;
   $textColor: string;
@@ -221,6 +224,20 @@ export const CardBadge = styled.div<{
   color: ${(props) => props.$textColor};
   background: ${(props) => props.$bgColor};
   white-space: nowrap;
+  outline: none;
+
+  &:focus {
+    outline: none;
+  }
+
+  &:active {
+    outline: none;
+  }
+
+  &:hover {
+    outline: none;
+  }
+
 `;
 
 export const CardContent = styled.div`
@@ -318,4 +335,13 @@ export const PageNumber = styled.button<{ $active: boolean }>`
   &:focus-visible {
     outline: none;
   }
+`;
+
+export const NoContestsMessage = styled.div`
+  font-family: "Pretendard", sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  color: #bdbdbd;
+  text-align: center;
+  padding: 40px;
 `;
