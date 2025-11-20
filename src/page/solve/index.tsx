@@ -62,6 +62,7 @@ export default function SolvePage() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const messageIdRef = useRef(INITIAL_CHAT_MESSAGES.length);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const exampleInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Terminal (floating) size & resize state
   const [terminalHeight, setTerminalHeight] = useState(200); // px
@@ -162,6 +163,13 @@ export default function SolvePage() {
     setSampleInput(problem.exampleInput || "");
     setSampleOutput(problem.exampleOutput || "");
   }, [problem]);
+
+  useEffect(() => {
+    if (!exampleInputRef.current) return;
+    const textarea = exampleInputRef.current;
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [sampleInput]);
 
   const formatGradingResult = (result: {
     status?: string;
@@ -415,6 +423,7 @@ export default function SolvePage() {
                 readOnly
                 tabIndex={-1}
                 aria-readonly="true"
+                ref={exampleInputRef}
                 value={sampleInput}
               />
             </Style.Section>

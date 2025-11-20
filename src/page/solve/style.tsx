@@ -50,6 +50,7 @@ export const PageContent = styled.div`
   flex: 1;
   width: 100%;
   position: relative;
+  min-height: 0;
 `;
 
 export const LeftPanel = styled.div`
@@ -64,12 +65,14 @@ export const LeftPanel = styled.div`
   align-items: stretch;
   text-align: left;
   height: 100%;
+  min-height: 0;
+  overflow-y: auto;
 `;
 
 export const LeftPanelContent = styled.div`
   flex: 1 1 auto;
-  overflow-y: auto;
   padding-right: 4px;
+  padding-bottom: 120px;
   width: 100%;
 `;
 
@@ -160,6 +163,8 @@ export const RightPanel = styled.div<{ $width: number }>`
   min-width: 20%;
   flex-shrink: 0;
   position: relative;
+  min-height: 0;
+  overflow-y: auto;
 `;
 
 export const EditorContainer = styled.div`
