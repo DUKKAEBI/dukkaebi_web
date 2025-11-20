@@ -34,7 +34,7 @@ export const ContestPage = () => {
       case "participating":
         return "참여중";
       case "closed":
-        return "접수마감";
+        return "대회 종료";
     }
   };
 

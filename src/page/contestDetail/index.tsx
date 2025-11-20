@@ -1,64 +1,5 @@
-import { createGlobalStyle } from "styled-components";
 import * as S from "./styles";
 
-// 글로벌 스타일
-const GlobalStyle = createGlobalStyle`
-  * {
-    box-sizing: border-box;
-  }
-
-  html, body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Pretendard', system-ui, Avenir, Helvetica, Arial, sans-serif;
-    line-height: 1.5;
-    font-weight: 400;
-    color: #213547;
-    background-color: #ffffff;
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
-    width: 100%;
-  }
-
-  body {
-    min-width: 320px;
-    min-height: 100vh;
-  }
-
-  #root {
-    width: 100%;
-    overflow-x: hidden;
-  }
-
-  a {
-    font-weight: 500;
-    color: #646cff;
-    text-decoration: inherit;
-  }
-
-  a:hover {
-    color: #747bff;
-  }
-
-  h1 {
-    font-size: 3.2em;
-    line-height: 1.1;
-  }
-
-  button {
-    border-radius: 8px;
-    border: 1px solid transparent;
-    padding: 0.6em 1.2em;
-    font-size: 1em;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    transition: border-color 0.25s;
-  }
-`;
 
 // 문제 타입 정의
 interface Problem {
@@ -93,7 +34,6 @@ const MOCK_PROBLEMS: Problem[] = [
 export const ContestDetailPage = () => {
   return (
     <>
-      <GlobalStyle />
       <S.Container>
         {/* Header */}
         <S.Header>
