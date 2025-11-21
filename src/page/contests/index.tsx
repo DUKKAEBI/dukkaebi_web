@@ -21,11 +21,11 @@ interface Contest {
 // 이미지 매핑
 // ============================
 const IMAGE_MAP: Record<string, string> = {
-  "2학년 코딩 테스트": "src/assets/image/contests/dgsw.png",
-  "1학년 파이썬 코딩 테스트": "src/assets/image/contests/python.png",
-  "C언어 코딩 테스트": "src/assets/image/contests/c.png",
+  "2학년 코딩 테스트": "../../assets/image/contests/dgsw.png",
+  "1학년 파이썬 코딩 테스트": "../../assets/image/contests/python.png",
+  "C언어 코딩 테스트": "../../assets/image/contests/c.png",
   "제 1회 코딩 테스트": "https://i.ibb.co/bgdgkTBG/image.png",
-  "두카미 코딩테스트": "src/assets/image/contests/ducami.png",
+  "두카미 코딩테스트": "../../assets/image/contests/dukkami.png",
 };
 
 // ============================
