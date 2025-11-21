@@ -16,6 +16,7 @@ interface Contest {
   status: "JOINABLE" | "JOINED" | "ENDED";
   image: string;
 }
+type ContestApiItem = Omit<Contest, "image"> & { image?: string };
 
 // ============================
 // 이미지 매핑
@@ -27,6 +28,7 @@ const IMAGE_MAP: Record<string, string> = {
   "제 1회 코딩 테스트": "https://i.ibb.co/bgdgkTBG/image.png",
   "두카미 코딩테스트": "https://i.ibb.co/DDKHcv4N/ducami.png",
 };
+const DEFAULT_IMAGE = "https://i.ibb.co/Rp6GC0LG/dgsw.png";
 
 // ============================
 // 메인 컴포넌트
@@ -139,19 +141,19 @@ export const ContestPage = () => {
         const res = await axiosInstance.get(`/contest/list`);
 
         if (Array.isArray(res.data)) {
-          const contestsFromServer = res.data;
+          const contestsFromServer = res.data as ContestApiItem[];
 
           // 🔥 서버 데이터에 이미지 붙이기
-          const contestsWithImages = contestsFromServer.map((c: any) => ({
+          const contestsWithImages = contestsFromServer.map((c) => ({
             ...c,
-            image: IMAGE_MAP[c.title] ?? IMAGE_MAP.default,
+            image: IMAGE_MAP[c.title] ?? c.image ?? DEFAULT_IMAGE,
           }));
 
           setContests(contestsWithImages);
           return;
         }
-      } catch (_) {
-        console.error("대회 목록 불러오기 실패");
+      } catch (error) {
+        console.error("대회 목록 불러오기 실패", error);
       }
     };
 
